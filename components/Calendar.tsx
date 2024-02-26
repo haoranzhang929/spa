@@ -6,14 +6,18 @@ interface Day {
   date: string;
   isCurrentMonth: boolean;
   isToday: boolean;
-  isSelected?: boolean; // Optional, depending on your logic for selecting days
+  isSelected: boolean;
+  isFuture: boolean; // Indicates if the day is in the future
 }
 
 function classNames(...classes: (string | boolean)[]): string {
   return classes.filter(Boolean).join(" ");
 }
 
-function generateDaysForMonth(currentDate: Date): Day[] {
+function generateDaysForMonth(currentDate: Date, selectedDate?: string): Day[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Normalize today's date for comparison
+
   const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
   const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
@@ -29,11 +33,14 @@ function generateDaysForMonth(currentDate: Date): Day[] {
 
   const days: Day[] = [];
   for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
+    const isoDate = date.toISOString().split("T")[0];
+    const isFuture = date.getTime() >= today.getTime(); // Check if the date is in the future
     days.push({
-      date: date.toISOString().split("T")[0],
+      date: isoDate,
       isCurrentMonth: date.getMonth() === currentDate.getMonth(),
-      isToday: date.toISOString().split("T")[0] === new Date().toISOString().split("T")[0],
-      isSelected: false // Implement your logic here
+      isToday: isoDate === today.toISOString().split("T")[0],
+      isSelected: isoDate === selectedDate,
+      isFuture: isFuture // Add the isFuture flag to each day
     });
   }
 
@@ -42,7 +49,8 @@ function generateDaysForMonth(currentDate: Date): Day[] {
 
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const days = generateDaysForMonth(new Date(currentDate));
+  const [selectedDate, setSelectedDate] = useState<string | undefined>(undefined);
+  const days = generateDaysForMonth(new Date(currentDate), selectedDate);
 
   const monthNames = [
     "January",
@@ -67,6 +75,13 @@ export default function Calendar() {
 
   const handleNextMonth = (): void => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  const handleDayClick = (date: string, isFuture: boolean): void => {
+    if (isFuture) {
+      // Only allow selection of future dates
+      setSelectedDate(date);
+    }
   };
 
   return (
@@ -108,10 +123,14 @@ export default function Calendar() {
               <button
                 key={day.date}
                 type="button"
+                onClick={() => handleDayClick(day.date, day.isFuture)}
+                disabled={!day.isFuture}
                 className={classNames(
                   "py-1.5 hover:bg-gray-100 focus:z-10",
                   day.isCurrentMonth ? "bg-white" : "bg-gray-50",
-                  day.isToday && "font-semibold text-indigo-600",
+                  day.isSelected ? "font-semibold bg-gray-100" : "",
+                  day.isToday ? "text-indigo-600" : day.isFuture ? "text-gray-900" : "text-gray-400",
+                  !day.isFuture && "cursor-not-allowed opacity-50",
                   dayIdx === 0 && "rounded-tl-lg",
                   dayIdx === 6 && "rounded-tr-lg",
                   dayIdx === days.length - 7 && "rounded-bl-lg",
@@ -122,12 +141,6 @@ export default function Calendar() {
               </button>
             ))}
           </div>
-          <button
-            type="button"
-            className="mt-8 w-full rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-          >
-            Add event
-          </button>
         </div>
       </div>
     </div>
