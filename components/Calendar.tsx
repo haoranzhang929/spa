@@ -48,6 +48,9 @@ function generateDaysForMonth(currentDate: Date, selectedDate?: string): Day[] {
 }
 
 export default function Calendar() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Normalize today for comparison
+
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<string | undefined>(undefined);
   const days = generateDaysForMonth(new Date(currentDate), selectedDate);
@@ -70,7 +73,10 @@ export default function Calendar() {
   const currentYear = currentDate.getFullYear();
 
   const handlePrevMonth = (): void => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    if (currentDate > today) {
+      // Only navigate to previous month if it's after the current month
+      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    }
   };
 
   const handleNextMonth = (): void => {
@@ -84,6 +90,9 @@ export default function Calendar() {
     }
   };
 
+  const isPrevMonthButtonDisabled =
+    currentDate.getFullYear() === today.getFullYear() && currentDate.getMonth() === today.getMonth();
+
   return (
     <div>
       <div className="lg:grid lg:grid-cols-12 lg:gap-x-16">
@@ -92,7 +101,11 @@ export default function Calendar() {
             <button
               onClick={handlePrevMonth}
               type="button"
-              className="-m-1.5 flex flex-none items-center justify-center p-1.5 text-gray-400 hover:text-gray-500"
+              disabled={isPrevMonthButtonDisabled} // Disable button based on current view
+              className={classNames(
+                "-m-1.5 flex flex-none items-center justify-center p-1.5 text-gray-400 hover:text-gray-500",
+                isPrevMonthButtonDisabled && "cursor-not-allowed opacity-50"
+              )}
             >
               <span className="sr-only">Previous month</span>
               <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
@@ -126,9 +139,9 @@ export default function Calendar() {
                 onClick={() => handleDayClick(day.date, day.isFuture)}
                 disabled={!day.isFuture}
                 className={classNames(
-                  "py-1.5 hover:bg-gray-100 focus:z-10",
+                  "py-1 hover:bg-gray-100 focus:z-10", // Reduced padding from py-1.5 to py-1
                   day.isCurrentMonth ? "bg-white" : "bg-gray-50",
-                  day.isSelected ? "font-semibold bg-gray-100" : "",
+                  day.isSelected ? "font-semibold border-2 border-indigo-500 rounded py-1 px-1" : "px-1.5 py-1.5", // Adjust padding based on selection
                   day.isToday ? "text-indigo-600" : day.isFuture ? "text-gray-900" : "text-gray-400",
                   !day.isFuture && "cursor-not-allowed opacity-50",
                   dayIdx === 0 && "rounded-tl-lg",
